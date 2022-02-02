@@ -8,11 +8,11 @@ use Psr\Container\NotFoundExceptionInterface;
 
 class Container implements ContainerInterface
 {
-    private array $definitions;
-    private array $factories;
-    private array $files;
-    private array $aliases;
-    private array $resolved;
+    private array $definitions = [];
+    private array $factories = [];
+    private array $files = [];
+    private array $aliases = [];
+    private array $resolved = [];
 
     public function __construct()
     {
@@ -40,7 +40,8 @@ class Container implements ContainerInterface
 
     public function call($id, ...$args)
     {
-        $source = $this->getSource($id, $isFactory=false);
+        $isFactory = false;
+        $source = $this->getSource($id, $isFactory);
 
         if (!is_callable($source)) {
             throw new ContainerException(sprintf(
@@ -77,7 +78,8 @@ class Container implements ContainerInterface
             throw new NotFoundException(sprintf('Dependecy [%s] not found', $id));
         }
 
-        $source = &$this->getSource($id, $isFactory=false);
+        $isFactory = false;
+        $source = $this->getSource($id, $isFactory);
 
         if (is_scalar($source) || is_null($source)) {
             $this->resolved[$id] = $source;

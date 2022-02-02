@@ -1,0 +1,26 @@
+{
+    "name": "yrv/container",
+    "description": "DI container",
+    "type": "library",
+    "require-dev": {
+        "phpunit/phpunit": "9.5.x-dev"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Yrv\\Container\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Roman Yankovenko",
+            "email": "roman@yankovenko.ru"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+	"php": ">=7.2.0",
+        "psr/container": "^1.0"
+    }
+}
+

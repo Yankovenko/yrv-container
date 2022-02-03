@@ -2,6 +2,8 @@
   "name": "yrv/container",
   "description": "DI container",
   "type": "library",
+  "description": "The dependency injection container simple and fast",
+  "keywords": ["di", "dependency injection", "container", "ioc", "psr-11", "psr11"],
   "require-dev": {
     "phpunit/phpunit": "9.5.x-dev"
   },

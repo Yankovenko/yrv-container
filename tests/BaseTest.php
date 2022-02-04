@@ -4,6 +4,7 @@
 namespace Tests;
 
 
+use Psr\Container\ContainerInterface;
 use YRV\Container\Container;
 
 class BaseTest extends \PHPUnit\Framework\TestCase
@@ -19,14 +20,14 @@ class BaseTest extends \PHPUnit\Framework\TestCase
     public function testFunction()
     {
         $container = new Container();
-        $container->set('test', function($container) {return 'asdf';});
+        $container->set('test', function() {return 'asdf';});
         $this->assertEquals('asdf', $container->get('test'));
     }
 
     public function testSingleton()
     {
         $container = new Container();
-        $container->set('test', function($container) {
+        $container->set('test', function() {
             static $i=0;
             return $i++;
         });
@@ -37,7 +38,7 @@ class BaseTest extends \PHPUnit\Framework\TestCase
     public function testFactory()
     {
         $container = new Container();
-        $container->factory('test', function($container) {
+        $container->factory('test', function(ContainerInterface $container) {
             static $i=0;
             return $i++;
         });

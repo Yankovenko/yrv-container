@@ -1,5 +1,5 @@
 <?php
 
-return function($container) {
+return function(Psr\Container\ContainerInterface $container) {
     return 'foo';
 };

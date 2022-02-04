@@ -18,6 +18,8 @@ class Container implements ContainerInterface
 
     public function __construct()
     {
+        $this->resolved[self::class] = $this;
+        $this->resolved[ContainerInterface::class] = $this;
     }
 
     public function alias(string $id, $alias): void
@@ -65,14 +67,14 @@ class Container implements ContainerInterface
      *
      * @return mixed Entry.
      */ 
-    public function get($id)
+    public function get($id, array $args = [])
     {
         if (isset($this->resolved[$id]) || array_key_exists($id, $this->resolved)) {
             return $this->resolved[$id];
         }
 
         $this->processedResolved = $id;
-        return $this->resolve($id, []);
+        return $this->resolve($id, $args);
     }
 
     private function resolve($id, array $args = [])
@@ -92,6 +94,9 @@ class Container implements ContainerInterface
         if (is_string($source) && class_exists($source)) {
             $value = $this->resolveObject($source, $args);
 
+        } elseif (is_string($source) && function_exists($source)) {
+            $value = $this->resolveFunction($source, $args);
+
         } elseif (is_string($source)) {
             $this->resolved[$id] = $source;
             return $source;
@@ -104,7 +109,7 @@ class Container implements ContainerInterface
         } else {
 
             try {
-                $value = call_user_func($source, $this);
+                $value = $this->resolveCallable($source, $args);
             } catch (\Throwable $exception) {
                 throw new ContainerException(sprintf(
                     'Container [%s] error: ' . $exception->getMessage(),
@@ -144,9 +149,22 @@ class Container implements ContainerInterface
         }
         $params = $constructor->getParameters();
         $newParams = $this->resolveParameters($params, $args);
-
         return $reflector->newInstance(...$newParams);
     }
+
+    public function resolveCallable($action, array $args = [])
+    {
+        if (is_array($action)) {
+            $reflection = new \ReflectionFunction(\Closure::fromCallable([$action[0], $action[1]]));
+        }
+
+        $reflection = new \ReflectionFunction($action);
+
+        $params = $this->resolveParameters($reflection->getParameters(), $args);
+
+        return $reflection->invoke(...$params);
+    }
+
 
     /**
      * @param \ReflectionParameter[] $params
@@ -185,7 +203,8 @@ class Container implements ContainerInterface
                 $newParams[] = $this->get($name);
                 continue;
             }
-            throw new ContainerException('Can not resolver parameter ['.$parameterName.']');
+            print_r (array_keys($this->resolved));
+            throw new ContainerException('Can not resolver parameter ['.$parameterName.'], type of ['.$name.']');
         }
 
         return $newParams;
@@ -231,7 +250,8 @@ class Container implements ContainerInterface
     public function has(string $id)
     {
         return (
-            isset($this->definitions[$id]) 
+            isset($this->resolved[$id])
+            || isset($this->definitions[$id])
             || isset($this->factories[$id]) 
             || isset($this->files[$id]) 
             || isset($this->aliases[$id])

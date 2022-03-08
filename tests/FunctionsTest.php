@@ -34,15 +34,16 @@ class FunctionsTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals('value1stdClassvalue3', $result);
     }
 
-    public function testInvokeFunctionByName()
+    public function testNotInvokeFunctionByName()
     {
         $container = new Container();
         $container->set('test', 'functionTest');
         $this->assertEquals('functionTest', $container->get('test'));
+
     }
 
 }
 
 function functionTest() {
-    return 'functionTest';
+    return 'ResultFunctionTest';
 }

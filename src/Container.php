@@ -4,7 +4,7 @@ namespace YRV\Container;
 
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
-use Psr\Container\NotFoundExceptionInterface;
+use ReflectionException;
 
 class Container implements ContainerInterface
 {
@@ -42,6 +42,9 @@ class Container implements ContainerInterface
         $this->files[$id] = $filename;
     }
 
+    /**
+     * @throws ContainerException
+     */
     public function call(string $id, ...$args)
     {
         $isFactory = false;
@@ -62,12 +65,10 @@ class Container implements ContainerInterface
      *
      * @param string $id Identifier of the entry to look for.
      *
-     * @throws NotFoundExceptionInterface  No entry was found for **this** identifier.
-     * @throws ContainerExceptionInterface Error while retrieving the entry.
-     *
      * @return mixed Entry.
-     */ 
-    public function get($id, array $args = [])
+     * @throws ContainerExceptionInterface Error while retrieving the entry.
+     */
+    public function get(string $id, array $args = [])
     {
         if (isset($this->resolved[$id]) || array_key_exists($id, $this->resolved)) {
             return $this->resolved[$id];
@@ -77,10 +78,14 @@ class Container implements ContainerInterface
         return $this->resolve($id, $args);
     }
 
-    private function resolve($id, array $args = [])
+    /**
+     * @throws NotFoundException
+     * @throws ContainerException
+     */
+    public function resolve($id, array $args = [])
     {
         if (!$this->has($id)) {
-            throw new NotFoundException(sprintf('Dependecy [%s] not found', $id));
+            throw new NotFoundException(sprintf('Dependency [%s] not found', $id));
         }
 
         $isFactory = false;
@@ -94,20 +99,10 @@ class Container implements ContainerInterface
         if (is_string($source) && class_exists($source)) {
             $value = $this->resolveObject($source, $args);
 
-        } elseif (is_string($source) && function_exists($source)) {
-            $value = $this->resolveFunction($source, $args);
-
-        } elseif (is_string($source)) {
-            $this->resolved[$id] = $source;
-            return $source;
-
-        } elseif (!is_callable($source)) {
-            throw new ContainerException(sprintf(
-                'Container [%s] type is undefined',
-                $id
-            ));
-        } else {
-
+        } elseif (
+            is_callable($source)
+//            || ($source instanceof \Closure)
+        ) {
             try {
                 $value = $this->resolveCallable($source, $args);
             } catch (\Throwable $exception) {
@@ -116,6 +111,16 @@ class Container implements ContainerInterface
                     $id
                 ));
             }
+
+        } elseif (is_scalar($source) || is_array($source)) {
+            $this->resolved[$id] = $source;
+            return $source;
+
+        } else {
+            throw new ContainerException(sprintf(
+                'Container [%s] type is undefined',
+                $id
+            ));
         }
 
         if (!$isFactory) {
@@ -125,40 +130,50 @@ class Container implements ContainerInterface
         return $value;
     }
 
+    /**
+     * @throws ContainerException
+     */
     private function resolveObject(string $id, array $args = []): object
     {
         try {
             $reflector = new \ReflectionClass($id);
-        } catch (\ReflectionException $e) {
+
+            if (!$reflector->isInstantiable()) {
+                throw new \InvalidArgumentException("$id is not instantiable");
+            }
+
+            $constructor = $reflector->getConstructor();
+            if (!$constructor) {
+                return $reflector->newInstance();
+            }
+            $params = $constructor->getParameters();
+            $newParams = $this->resolveParameters($params, $args);
+            return $reflector->newInstance(...$newParams);
+
+        } catch (ReflectionException $e) {
             throw new ContainerException(
-                strintf(
-                    'Class [%s] does not exists: %s',
+                sprintf(
+                    'Error resolve object [%s]: %s',
                     $id,
                     $e->getMessage()
-                ),
-                null, $e);
+                ));
         }
-
-        if(!$reflector->isInstantiable()) {
-            throw new \InvalidArgumentException("$name is not instantiable");
-        }
-
-        $constructor = $reflector->getConstructor();
-        if (!$constructor) {
-            return $reflector->newInstance();
-        }
-        $params = $constructor->getParameters();
-        $newParams = $this->resolveParameters($params, $args);
-        return $reflector->newInstance(...$newParams);
     }
 
-    public function resolveCallable($action, array $args = [])
+    /**
+     * @throws ContainerException
+     */
+    private function resolveCallable($action, array $args = [])
     {
-        if (is_array($action)) {
-            $reflection = new \ReflectionFunction(\Closure::fromCallable([$action[0], $action[1]]));
+        try {
+            if (is_array($action)) {
+                $reflection = new \ReflectionFunction(\Closure::fromCallable([$action[0], $action[1]]));
+            } else {
+                $reflection = new \ReflectionFunction($action);
+            }
+        } catch (ReflectionException $exception) {
+            throw new ContainerException ('Error reflection callable');
         }
-
-        $reflection = new \ReflectionFunction($action);
 
         $params = $this->resolveParameters($reflection->getParameters(), $args);
 
@@ -191,30 +206,34 @@ class Container implements ContainerInterface
                 break;
             }
 
-            if ($name === $this->processedResolved) {
-                throw new ContainerException(sprintf(
-                    'Circular dependency of [%s]',
-                    $this->processedResolved
-                ));
-            }
 
             $name = (string) $param->getType();
             if ($this->has($name)) {
+                if ($name === $this->processedResolved) {
+                    throw new ContainerException(sprintf(
+                        'Circular dependency of [%s]',
+                        $this->processedResolved
+                    ));
+                }
                 $newParams[] = $this->get($name);
                 continue;
             }
-            print_r (array_keys($this->resolved));
             throw new ContainerException('Can not resolver parameter ['.$parameterName.'], type of ['.$name.']');
         }
 
         return $newParams;
     }
 
+    /**
+     * @throws ContainerException
+     */
     private function getSource(string $id, bool &$isFactory)
     {
         if (isset($this->aliases[$id])) {
             $id = $this->aliases[$id];
         }
+
+        $source = null;
 
         if (array_key_exists($id, $this->definitions)) {
             $source = $this->definitions[$id];
@@ -225,7 +244,7 @@ class Container implements ContainerInterface
             if (!file_exists($this->files[$id])) {
                 throw new ContainerException(
                     sprintf(
-                        'File [%s] of defination [%s] not exist',
+                        'File [%s] of definition [%s] not exist',
                         $this->files[$id],
                         $id
                     )
@@ -247,7 +266,7 @@ class Container implements ContainerInterface
      *
      * @return bool
      */
-    public function has(string $id)
+    public function has(string $id): bool
     {
         return (
             isset($this->resolved[$id])

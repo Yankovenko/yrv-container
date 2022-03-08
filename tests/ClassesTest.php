@@ -22,12 +22,24 @@ class ClassesTest extends \PHPUnit\Framework\TestCase
         $this->assertInstanceOf(Foo::class, $fooInstance);
     }
     
-    public function testInvokeClassWithDependance()
+    public function testInvokeClassWithDependence()
     {
         $container = new Container();
         $container->set(FooInterface::class, Foo::class);
         $container->set(BarInterface::class, Bar::class);
         $barInstance = $container->get(BarInterface::class);
         $this->assertInstanceOf(Bar::class, $barInstance);
+        $this->assertInstanceOf(Foo::class, $barInstance->foo);
+    }
+
+    public function testInvokeClassByArray()
+    {
+        $container = new Container();
+        $container->set('testStatic', [Foo::class, 'staticMethod']);
+        $this->assertEquals('ResultStaticMethod', $container->get('testStatic'));
+
+        $foo = new Foo();
+        $container->set('testNotStatic', [$foo, 'notStaticMethod']);
+        $this->assertEquals('ResultNotStaticMethod', $container->get('testNotStatic'));
     }
 }

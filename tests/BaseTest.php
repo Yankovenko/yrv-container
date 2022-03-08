@@ -50,7 +50,7 @@ class BaseTest extends \PHPUnit\Framework\TestCase
     {
         $container = new Container();
         $container->file('test', __DIR__ . '/files/file1.php');
-        $this->assertEquals('foo', $container->get('test'));
+        $this->assertEquals('fooYRV\Container\Container', $container->get('test'));
     }
 
     public function testCall()
@@ -61,7 +61,5 @@ class BaseTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals('a1', $container->call('test', 'a1'));
         $this->assertEquals('a1a2', $container->call('test', 'a1' , 'a2'));
     }
-
-
 
 }

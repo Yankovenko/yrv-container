@@ -1,17 +1,10 @@
 <?php
 
-
 namespace Tests;
 
-
-use Tests\ExampleClasses\Bar;
-use Tests\ExampleClasses\BarInterface;
-use Tests\ExampleClasses\Foo;
-use Tests\ExampleClasses\FooInterface;
 use YRV\Container\Container;
 
 class FunctionsTest extends \PHPUnit\Framework\TestCase
-
 {
     public function testInvokeFunction()
     {
@@ -42,8 +35,19 @@ class FunctionsTest extends \PHPUnit\Framework\TestCase
 
     }
 
+    public function testResolveFunctionName()
+    {
+        $container = new Container();
+        $this->assertEquals('ResultFunctionTest', $container->resolve('Tests\functionTest'));
+
+        $this->assertEquals(
+            'ResultFunctionTestParamValue',
+            $container->resolve('Tests\functionTest', ['param' => 'ParamValue'])
+        );
+    }
+
 }
 
-function functionTest() {
-    return 'ResultFunctionTest';
+function functionTest($param='') {
+    return 'ResultFunctionTest' . $param;
 }

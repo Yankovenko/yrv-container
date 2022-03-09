@@ -74,60 +74,54 @@ class Container implements ContainerInterface
             return $this->resolved[$id];
         }
 
-        $this->processedResolved = $id;
-        return $this->resolve($id, $args);
-    }
-
-    /**
-     * @throws NotFoundException
-     * @throws ContainerException
-     */
-    public function resolve($id, array $args = [])
-    {
         if (!$this->has($id)) {
             throw new NotFoundException(sprintf('Dependency [%s] not found', $id));
         }
 
+        $this->processedResolved = $id;
+
         $isFactory = false;
         $source = $this->getSource($id, $isFactory);
 
-        if (is_numeric($source) || is_null($source) || (is_object($source) && get_class($source) !== 'Closure')) {
+        if (is_numeric($source) || is_null($source) || is_bool($source)
+            || (is_string($source) && !class_exists($source))
+            || (is_array($source) && !is_callable($source))
+        ) {
             $this->resolved[$id] = $source;
             return $source;
         }
 
-        if (is_string($source) && class_exists($source)) {
-            $value = $this->resolveObject($source, $args);
-
-        } elseif (
-            is_callable($source)
-//            || ($source instanceof \Closure)
-        ) {
-            try {
-                $value = $this->resolveCallable($source, $args);
-            } catch (\Throwable $exception) {
-                throw new ContainerException(sprintf(
-                    'Container [%s] error: ' . $exception->getMessage(),
-                    $id
-                ));
-            }
-
-        } elseif (is_scalar($source) || is_array($source)) {
-            $this->resolved[$id] = $source;
-            return $source;
-
-        } else {
+        try {
+            $result = $this->resolve($source, $args);
+        } catch (\Throwable $exception) {
             throw new ContainerException(sprintf(
-                'Container [%s] type is undefined',
+                'Container [%s] error: ' . $exception->getMessage(),
                 $id
             ));
         }
 
         if (!$isFactory) {
-            $this->resolved[$id] = $value;
+            $this->resolved[$id] = $result;
         }
 
-        return $value;
+        return $result;
+    }
+
+    /**
+     * @throws ContainerException
+     */
+    public function resolve($source, array $args = [])
+    {
+        try {
+            if (is_string($source) && class_exists($source)) {
+                return $this->resolveObject($source, $args);
+            } elseif (is_callable($source) || (is_string($source) && function_exists($source))) {
+                return $this->resolveCallable($source, $args);
+            }
+        } catch (\Throwable $exception) {
+            throw new ContainerException('Error resolve: ' . $exception->getMessage());
+        }
+        throw new ContainerException('Type undefined');
     }
 
     /**
@@ -192,12 +186,12 @@ class Container implements ContainerInterface
         foreach ($params as $param) {
             $parameterName = $param->getName();
 
-            if(isset($args[$parameterName]) || array_key_exists($parameterName, $args)) {
+            if (isset($args[$parameterName]) || array_key_exists($parameterName, $args)) {
                 $newParams[] = $args[$parameterName];
                 continue;
             }
 
-            if($param->isDefaultValueAvailable()) {
+            if ($param->isDefaultValueAvailable()) {
                 $newParams[] = $param->getDefaultValue();
                 continue;
             }
@@ -207,7 +201,7 @@ class Container implements ContainerInterface
             }
 
 
-            $name = (string) $param->getType();
+            $name = (string)$param->getType();
             if ($this->has($name)) {
                 if ($name === $this->processedResolved) {
                     throw new ContainerException(sprintf(
@@ -218,7 +212,7 @@ class Container implements ContainerInterface
                 $newParams[] = $this->get($name);
                 continue;
             }
-            throw new ContainerException('Can not resolver parameter ['.$parameterName.'], type of ['.$name.']');
+            throw new ContainerException('Can not resolver parameter [' . $parameterName . '], type of [' . $name . ']');
         }
 
         return $newParams;
@@ -271,9 +265,21 @@ class Container implements ContainerInterface
         return (
             isset($this->resolved[$id])
             || isset($this->definitions[$id])
-            || isset($this->factories[$id]) 
-            || isset($this->files[$id]) 
+            || isset($this->factories[$id])
+            || isset($this->files[$id])
             || isset($this->aliases[$id])
         );
+    }
+
+    public function unset(string $id)
+    {
+        if (!$this->has($id)) {
+            return;
+        }
+        foreach (['resolved', 'definitions', 'factories', 'files', 'aliases'] as $val) {
+            if (array_key_exists($id, $this->$val)) {
+                unset($this->$val[$id]);
+            }
+        }
     }
 }

@@ -62,4 +62,27 @@ class BaseTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals('a1a2', $container->call('test', 'a1' , 'a2'));
     }
 
+    public function testUnset()
+    {
+        $container = new Container();
+
+        $function = function() {return 123;};
+        $container->set('singleton', $function);
+        $container->factory('factory', $function);
+        $container->file('file', 'any/path');
+
+        $this->assertTrue($container->has('singleton'));
+        $container->unset('singleton');
+        $this->assertFalse($container->has('singleton'));
+
+        $this->assertTrue($container->has('factory'));
+        $container->unset('factory');
+        $this->assertFalse($container->has('factory'));
+
+        $this->assertTrue($container->has('file'));
+        $container->unset('file');
+        $this->assertFalse($container->has('file'));
+    }
+
+
 }

@@ -5,6 +5,7 @@ namespace Tests;
 
 
 use Psr\Container\ContainerInterface;
+use Tests\ExampleClasses\ExtContainer;
 use YRV\Container\Container;
 
 class BaseTest extends \PHPUnit\Framework\TestCase
@@ -84,5 +85,12 @@ class BaseTest extends \PHPUnit\Framework\TestCase
         $this->assertFalse($container->has('file'));
     }
 
+    public function testSelfInit()
+    {
+        $container = new ExtContainer();
+        $this->assertEquals($container, $container->get(ExtContainer::class));
+        $this->assertEquals($container, $container->get(Container::class));
+        $this->assertEquals($container, $container->get(ContainerInterface::class));
+    }
 
 }

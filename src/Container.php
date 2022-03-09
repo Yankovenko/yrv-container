@@ -18,7 +18,10 @@ class Container implements ContainerInterface
 
     public function __construct()
     {
-        $this->resolved[self::class] = $this;
+        $class = get_class($this);
+        do {
+            $this->resolved[$class] = $this;
+        } while ($class = get_parent_class($class));
         $this->resolved[ContainerInterface::class] = $this;
     }
 

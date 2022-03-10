@@ -285,4 +285,9 @@ class Container implements ContainerInterface
             }
         }
     }
+
+    public function addResolved(string $id, $value)
+    {
+        $this->resolved[$id] = $value;
+    }
 }

@@ -89,6 +89,7 @@ class Container implements ContainerInterface
         if (is_numeric($source) || is_null($source) || is_bool($source)
             || (is_string($source) && !class_exists($source))
             || (is_array($source) && !is_callable($source))
+            || (is_object($source) && !is_callable($source))
         ) {
             $this->resolved[$id] = $source;
             return $source;
@@ -98,7 +99,7 @@ class Container implements ContainerInterface
             $result = $this->resolve($source, $args);
         } catch (\Throwable $exception) {
             throw new ContainerException(sprintf(
-                'Container [%s] error: ' . $exception->getMessage(),
+                'Container resolve [%s] error: ' . $exception->getMessage(),
                 $id
             ));
         }
@@ -120,11 +121,14 @@ class Container implements ContainerInterface
                 return $this->resolveObject($source, $args);
             } elseif (is_callable($source) || (is_string($source) && function_exists($source))) {
                 return $this->resolveCallable($source, $args);
+            } elseif (is_scalar($source) || is_object($source)) {
+                return $source;
             }
+
         } catch (\Throwable $exception) {
             throw new ContainerException('Error resolve: ' . $exception->getMessage());
         }
-        throw new ContainerException('Type undefined');
+        throw new ContainerException('Source type ['. gettype($source) .'] not resolved');
     }
 
     /**

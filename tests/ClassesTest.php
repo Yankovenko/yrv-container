@@ -42,4 +42,14 @@ class ClassesTest extends \PHPUnit\Framework\TestCase
         $container->set('testNotStatic', [$foo, 'notStaticMethod']);
         $this->assertEquals('ResultNotStaticMethod', $container->get('testNotStatic'));
     }
+
+    public function testObjectResolved()
+    {
+        $container = new Container();
+        $fooClass = new Foo();
+
+        $container->set('foo', $fooClass);
+        $this->assertEquals($fooClass, $container->get('foo'));
+
+    }
 }

@@ -52,4 +52,10 @@ class ClassesTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($fooClass, $container->get('foo'));
 
     }
+
+    public function testObjectNameResolve()
+    {
+        $container = new Container();
+        $this->assertInstanceOf(Foo::class, $container->get(Foo::class));
+    }
 }

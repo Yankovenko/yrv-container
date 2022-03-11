@@ -219,7 +219,7 @@ class Container implements ContainerInterface
                 $newParams[] = $this->get($name);
                 continue;
             }
-            throw new ContainerException('Can not resolver parameter [' . $parameterName . '], type of [' . $name . ']');
+            throw new ContainerException('Can not resolve parameter [' . $parameterName . '], type of [' . $name . ']');
         }
 
         return $newParams;
@@ -228,7 +228,7 @@ class Container implements ContainerInterface
     /**
      * @throws ContainerException
      */
-    private function getSource(string $id, bool &$isFactory)
+    private function getSource(string $id, bool &$isFactory = false)
     {
         if (isset($this->aliases[$id])) {
             $id = $this->aliases[$id];
@@ -252,7 +252,10 @@ class Container implements ContainerInterface
                 );
             }
             $source = include $this->files[$id];
+        } elseif (class_exists($id) || function_exists($id) || is_callable($id)) {
+            return $id;
         }
+
         return $source;
     }
 
@@ -275,11 +278,23 @@ class Container implements ContainerInterface
             || isset($this->factories[$id])
             || isset($this->files[$id])
             || isset($this->aliases[$id])
+            || class_exists($id)
         );
     }
 
-    public function unset(string $id)
+    /**
+     * @param string|null $id - null - reset all definitions
+     * @return void
+     */
+    public function unset(?string $id = null)
     {
+        if ($id === null) {
+            foreach (['resolved', 'definitions', 'factories', 'files', 'aliases'] as $val) {
+                unset($this->$val);
+            }
+            return;
+        }
+
         if (!$this->has($id)) {
             return;
         }
@@ -290,6 +305,11 @@ class Container implements ContainerInterface
         }
     }
 
+    /**
+     * @param string $id
+     * @param $value
+     * @return void
+     */
     public function addResolved(string $id, $value)
     {
         $this->resolved[$id] = $value;

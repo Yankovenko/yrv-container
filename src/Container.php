@@ -117,11 +117,20 @@ class Container implements ContainerInterface
     public function resolve($source, array $args = [])
     {
         try {
-            if (is_string($source) && class_exists($source)) {
+            if (is_object($source)) {
+                if (method_exists($source, '__invoke')) {
+                    return $this->resolve([$source, '__invoke'], $args);
+                }
+                return $source;
+            } elseif (is_string($source) && class_exists($source)) {
                 return $this->resolveObject($source, $args);
+            } elseif (is_string($source) && function_exists($source)) {
+                return $this->resolveCallable($source, $args);
+            } elseif (is_array($source) && is_callable($source) && !is_object($source[0])) {
+                return $this->resolveObjectMethod($source, $args);
             } elseif (is_callable($source) || (is_string($source) && function_exists($source))) {
                 return $this->resolveCallable($source, $args);
-            } elseif (is_scalar($source) || is_object($source)) {
+            } elseif (is_scalar($source) || is_resource($source) || is_bool($source) || is_null($source)) {
                 return $source;
             }
 
@@ -129,6 +138,28 @@ class Container implements ContainerInterface
             throw new ContainerException('Error resolve: ' . $exception->getMessage());
         }
         throw new ContainerException('Source type ['. gettype($source) .'] not resolved');
+    }
+
+    private function resolveObjectMethod(array $id, array $args = [])
+    {
+        [$objectName, $method] = $id;
+        try {
+            $reflector = new \ReflectionClass($objectName);
+            $refMethod = $reflector->getMethod($method);
+            if ($refMethod->isStatic()) {
+                return $this->resolveCallable($id, $args);
+            }
+            $object = $this->get($objectName);
+            return $this->resolveCallable([$object, $method], $args);
+        } catch (\Throwable $e) {
+            throw new ContainerException(
+                sprintf(
+                    'Error resolve object method [%s:%s]: %s',
+                    $objectName,
+                    $method,
+                    $e->getMessage()
+                ));
+        }
     }
 
     /**

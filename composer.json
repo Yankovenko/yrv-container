@@ -1,7 +1,7 @@
 {
   "name": "yrv/container",
   "type": "library",
-  "version": "0.4",
+  "version": "0.5",
   "description": "The dependency injection and resolver container simple and fast",
   "keywords": ["di", "dependency injection", "container", "ioc", "psr-11", "psr11"],
   "require-dev": {

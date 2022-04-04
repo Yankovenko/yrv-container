@@ -14,7 +14,7 @@ class Container implements ContainerInterface
     private array $aliases = [];
     private array $resolved = [];
 
-    private string $processedResolved;
+    private array $processedResolved = [];
 
     public function __construct()
     {
@@ -81,8 +81,6 @@ class Container implements ContainerInterface
             throw new NotFoundException(sprintf('Dependency [%s] not found', $id));
         }
 
-        $this->processedResolved = $id;
-
         $isFactory = false;
         $source = $this->getSource($id, $isFactory);
 
@@ -95,6 +93,15 @@ class Container implements ContainerInterface
             return $source;
         }
 
+        if (isset($this->processedResolved[$id])) {
+            throw new ContainerException(sprintf(
+                'Circular dependency resolve of [%s]',
+                $id
+            ));
+        }
+
+        $this->processedResolved[$id] = true;
+
         try {
             $result = $this->resolve($source, $args);
         } catch (\Throwable $exception) {
@@ -102,6 +109,8 @@ class Container implements ContainerInterface
                 'Container resolve [%s]',
                 $id
             ), 0, $exception);
+        } finally {
+            unset($this->processedResolved[$id]);
         }
 
         if (!$isFactory) {
@@ -116,13 +125,15 @@ class Container implements ContainerInterface
      */
     public function resolve($source, array $args = [])
     {
+        if (is_object($source)) {
+            if (method_exists($source, '__invoke')) {
+                return $this->resolve([$source, '__invoke'], $args);
+            }
+            return $source;
+        }
+
         try {
-            if (is_object($source)) {
-                if (method_exists($source, '__invoke')) {
-                    return $this->resolve([$source, '__invoke'], $args);
-                }
-                return $source;
-            } elseif (is_string($source) && class_exists($source)) {
+            if (is_string($source) && class_exists($source)) {
                 return $this->resolveObject($source, $args);
             } elseif (is_string($source) && function_exists($source)) {
                 return $this->resolveCallable($source, $args);
@@ -218,6 +229,7 @@ class Container implements ContainerInterface
     /**
      * @param \ReflectionParameter[] $params
      * @return array
+     * @throws ContainerExceptionInterface
      */
     private function resolveParameters(array $params, array $args = []): array
     {
@@ -243,15 +255,15 @@ class Container implements ContainerInterface
 
             $name = (string)$param->getType();
             if ($this->has($name)) {
-                if ($name === $this->processedResolved) {
-                    throw new ContainerException(sprintf(
-                        'Circular dependency of [%s]',
-                        $this->processedResolved
-                    ));
-                }
                 $newParams[] = $this->get($name);
                 continue;
             }
+
+            if ($this->has($parameterName)) {
+                $newParams[] = $this->get($parameterName);
+                continue;
+            }
+
             throw new ContainerException('Can not resolve parameter [' . $parameterName . '], type of [' . $name . ']');
         }
 

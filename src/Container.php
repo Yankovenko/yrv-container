@@ -99,9 +99,9 @@ class Container implements ContainerInterface
             $result = $this->resolve($source, $args);
         } catch (\Throwable $exception) {
             throw new ContainerException(sprintf(
-                'Container resolve [%s] error: ' . $exception->getMessage(),
+                'Container resolve [%s]',
                 $id
-            ));
+            ), 0, $exception);
         }
 
         if (!$isFactory) {
@@ -135,7 +135,10 @@ class Container implements ContainerInterface
             }
 
         } catch (\Throwable $exception) {
-            throw new ContainerException('Error resolve: ' . $exception->getMessage());
+            throw new ContainerException(
+                'Error resolve: ' . $exception->getMessage(),
+                0, $exception
+            );
         }
         throw new ContainerException('Source type ['. gettype($source) .'] not resolved');
     }
@@ -154,11 +157,10 @@ class Container implements ContainerInterface
         } catch (\Throwable $e) {
             throw new ContainerException(
                 sprintf(
-                    'Error resolve object method [%s:%s]: %s',
+                    'Error resolve object method [%s:%s]',
                     $objectName,
-                    $method,
-                    $e->getMessage()
-                ));
+                    $method
+                ), 0, $e);
         }
     }
 
@@ -182,13 +184,13 @@ class Container implements ContainerInterface
             $newParams = $this->resolveParameters($params, $args);
             return $reflector->newInstance(...$newParams);
 
-        } catch (ReflectionException $e) {
+        } catch (\Throwable $e) {
             throw new ContainerException(
                 sprintf(
-                    'Error resolve object [%s]: %s',
-                    $id,
-                    $e->getMessage()
-                ));
+                    'Error resolve object [%s]',
+                    $id
+                ), 0, $e
+            );
         }
     }
 
@@ -204,7 +206,7 @@ class Container implements ContainerInterface
                 $reflection = new \ReflectionFunction($action);
             }
         } catch (ReflectionException $exception) {
-            throw new ContainerException ('Error reflection callable');
+            throw new ContainerException ('Error reflection callable', 0, $exception);
         }
 
         $params = $this->resolveParameters($reflection->getParameters(), $args);

@@ -30,4 +30,13 @@ class ResolveTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals('ResultNotStaticMethod', $result);
     }
 
+    public function testResolveWithUseGet()
+    {
+        $container = new Container();
+        $container->set(Foo::class, function() {
+            return 'FOO';
+        });
+        $result = $container->resolve(Foo::class);
+        $this->assertEquals('FOO', $result);
+    }
 }

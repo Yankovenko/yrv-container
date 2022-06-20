@@ -103,7 +103,7 @@ class Container implements ContainerInterface
         $this->processedResolved[$id] = true;
 
         try {
-            $result = $this->resolve($source, $args);
+            $result = $this->resolve($source, $args, true);
         } catch (\Throwable $exception) {
             throw new ContainerException(sprintf(
                 'Container resolve [%s]',
@@ -123,7 +123,7 @@ class Container implements ContainerInterface
     /**
      * @throws ContainerException
      */
-    public function resolve($source, array $args = [])
+    public function resolve($source, array $args = [], $noCycle = false)
     {
         if (is_object($source)) {
             if (method_exists($source, '__invoke')) {
@@ -134,8 +134,14 @@ class Container implements ContainerInterface
 
         try {
             if (is_string($source) && class_exists($source)) {
+                if (!$noCycle && $this->has($source)) {
+                    return $this->get($source);
+                }
                 return $this->resolveObject($source, $args);
             } elseif (is_string($source) && function_exists($source)) {
+                if (!$noCycle && $this->has($source)) {
+                    return $this->get($source);
+                }
                 return $this->resolveCallable($source, $args);
             } elseif (is_array($source) && is_callable($source) && !is_object($source[0])) {
                 return $this->resolveObjectMethod($source, $args);

@@ -134,13 +134,13 @@ class Container implements ContainerInterface
 
         try {
             if (is_string($source) && class_exists($source)) {
-                if (!$noCycle && $this->has($source)) {
-                    return $this->get($source);
+                if (!$noCycle && $this->has($source, false)) {
+                    return $this->get($source, $args);
                 }
                 return $this->resolveObject($source, $args);
             } elseif (is_string($source) && function_exists($source)) {
-                if (!$noCycle && $this->has($source)) {
-                    return $this->get($source);
+                if (!$noCycle && $this->has($source, false)) {
+                    return $this->get($source, $args);
                 }
                 return $this->resolveCallable($source, $args);
             } elseif (is_array($source) && is_callable($source) && !is_object($source[0])) {
@@ -326,16 +326,21 @@ class Container implements ContainerInterface
      *
      * @return bool
      */
-    public function has(string $id): bool
+    public function has(string $id, ?bool $checkExistClass = true): bool
     {
-        return (
+        if (
             isset($this->resolved[$id])
             || isset($this->definitions[$id])
             || isset($this->factories[$id])
             || isset($this->files[$id])
             || isset($this->aliases[$id])
-            || class_exists($id)
-        );
+        ) {
+            return true;
+        }
+        if ($checkExistClass && class_exists($id)) {
+            return true;
+        }
+        return false;
     }
 
     /**

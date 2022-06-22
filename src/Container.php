@@ -151,7 +151,7 @@ class Container implements ContainerInterface
                 return $source;
             }
 
-        } catch (\Throwable $exception) {
+        } catch (ContainerExceptionInterface $exception) {
             throw new ContainerException(
                 'Error resolve: ' . $exception->getMessage(),
                 0, $exception
@@ -160,6 +160,9 @@ class Container implements ContainerInterface
         throw new ContainerException('Source type ['. gettype($source) .'] not resolved');
     }
 
+    /**
+     * @throws ContainerException
+     */
     private function resolveObjectMethod(array $id, array $args = [])
     {
         [$objectName, $method] = $id;
@@ -171,7 +174,7 @@ class Container implements ContainerInterface
             }
             $object = $this->get($objectName);
             return $this->resolveCallable([$object, $method], $args);
-        } catch (\Throwable $e) {
+        } catch (ReflectionException | ContainerExceptionInterface $e) {
             throw new ContainerException(
                 sprintf(
                     'Error resolve object method [%s:%s]',
@@ -201,7 +204,7 @@ class Container implements ContainerInterface
             $newParams = $this->resolveParameters($params, $args);
             return $reflector->newInstance(...$newParams);
 
-        } catch (\Throwable $e) {
+        } catch (ReflectionException | ContainerExceptionInterface $e) {
             throw new ContainerException(
                 sprintf(
                     'Error resolve object [%s]',
@@ -212,7 +215,7 @@ class Container implements ContainerInterface
     }
 
     /**
-     * @throws ContainerException
+     * @throws ContainerException|ContainerExceptionInterface
      */
     private function resolveCallable($action, array $args = [])
     {
@@ -234,7 +237,9 @@ class Container implements ContainerInterface
 
     /**
      * @param \ReflectionParameter[] $params
+     * @param array $args
      * @return array
+     * @throws ContainerException
      * @throws ContainerExceptionInterface
      */
     private function resolveParameters(array $params, array $args = []): array

@@ -73,6 +73,10 @@ class Container implements ContainerInterface
      */
     public function get(string $id, array $args = [])
     {
+        if (isset($this->aliases[$id])) {
+            $id = $this->aliases[$id];
+        }
+
         if (isset($this->resolved[$id]) || array_key_exists($id, $this->resolved)) {
             return $this->resolved[$id];
         }

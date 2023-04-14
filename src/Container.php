@@ -108,11 +108,16 @@ class Container implements ContainerInterface
 
         try {
             $result = $this->resolve($source, $args, true);
-        } catch (\Throwable $exception) {
+
+        } catch (ContainerExceptionInterface $exception) {
             throw new ContainerException(sprintf(
-                'Container resolve [%s]',
+                'Error get [%s]: '.$exception->getMessage(),
                 $id
             ), 0, $exception);
+
+        } catch (\Throwable $exception) {
+            throw $exception;
+
         } finally {
             unset($this->processedResolved[$id]);
         }

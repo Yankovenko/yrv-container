@@ -111,8 +111,9 @@ class Container implements ContainerInterface
 
         if (isset($this->processedResolved[$id])) {
             throw new RecursiveContainerException(sprintf(
-                'Circular dependency resolve of [%s]',
-                $id
+                'Circular dependency for [%s]: %s',
+                $id,
+                implode(' -> ', array_keys($this->processedResolved))
             ));
         }
 

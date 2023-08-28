@@ -162,7 +162,7 @@ class Container implements ContainerInterface
         if (!$isFactory) {
             $this->resolved[$id] = $result;
             if (!empty($_aliases)) {
-                array_walk($_aliases, fn($alias) => $this->resolved[$alias] = $source);
+                array_walk($_aliases, fn($alias) => $this->resolved[$alias] = $result);
             }
         }
 

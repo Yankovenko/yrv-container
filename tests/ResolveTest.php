@@ -26,7 +26,7 @@ class ResolveTest extends \PHPUnit\Framework\TestCase
     public function testResolveNonStaticMethod()
     {
         $container = new Container();
-        $result = $container->resolve([Foo::class, 'notStaticMethod']);
+        $result = $container->resolve([new Foo(), 'notStaticMethod']);
         $this->assertEquals('ResultNotStaticMethod', $result);
     }
 

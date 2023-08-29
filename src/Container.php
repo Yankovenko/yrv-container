@@ -103,7 +103,7 @@ class Container implements ContainerInterface
      * @return mixed Entry.
      * @throws ContainerExceptionInterface Error while retrieving the entry.
      */
-    public function get(string $id, array $args = [], array $_aliases = [])
+    public function get(string $id, array $args = [])
     {
         if (isset($this->resolved[$id]) || array_key_exists($id, $this->resolved)) {
             return $this->resolved[$id];
@@ -120,8 +120,11 @@ class Container implements ContainerInterface
         $this->processedResolved[$id] = true;
 
         if (isset($this->aliases[$id])) {
-            $_aliases[] = $id;
-            return $this->get($this->aliases[$id], $args, $_aliases);
+            $result = $this->get($this->aliases[$id], $args);
+            if (array_key_exists($this->aliases[$id], $this->resolved)) {
+                $this->resolved[$id] = $result;
+            }
+            return $result;
         }
 
         if (!$this->has($id)) {
@@ -137,9 +140,6 @@ class Container implements ContainerInterface
             || (is_object($source) && !is_callable($source))
         ) {
             $this->resolved[$id] = $source;
-            if (!empty($_aliases)) {
-                array_walk($_aliases, fn($alias) => $this->resolved[$alias] = $source);
-            }
             return $source;
         }
 
@@ -148,8 +148,9 @@ class Container implements ContainerInterface
 
         } catch (ContainerExceptionInterface $exception) {
             throw new ContainerException(sprintf(
-                'Error get [%s]: '.$exception->getMessage(),
-                $id
+                'Error get [%s]: %s',
+                $id,
+                $exception->getMessage()
             ));
 
         } catch (\Throwable $exception) {
@@ -161,9 +162,6 @@ class Container implements ContainerInterface
 
         if (!$isFactory) {
             $this->resolved[$id] = $result;
-            if (!empty($_aliases)) {
-                array_walk($_aliases, fn($alias) => $this->resolved[$alias] = $result);
-            }
         }
 
         return $result;

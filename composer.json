@@ -1,5 +1,5 @@
 {
-  "name": "yrv/container",
+  "name": "ysite2/container",
   "type": "library",
   "version": "0.5",
   "description": "The dependency injection and resolver container simple and fast",

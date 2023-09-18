@@ -25,21 +25,51 @@ class Container implements ContainerInterface
         $this->resolved[ContainerInterface::class] = $this;
     }
 
+    /** Add alias
+     * @param string $id
+     * @param $alias
+     * @return void
+     */
     public function alias(string $id, $alias): void
     {
         $this->aliases[$id] = $alias;
     }
 
+    /** Set definitions for resolving
+     * @param string $id
+     * @param $resolver
+     * @return void
+     */
     public function set(string $id, $resolver): void
     {
         $this->definitions[$id] = $resolver;
     }
 
+    /** set fixed|resolved value
+     * @param string $id
+     * @param $value
+     * @return void
+     */
+    public function var(string $id, $value): void
+    {
+        $this->resolved[$id] = $value;
+    }
+
+    /** set Factory for resolve new instance every time
+     * @param string $id
+     * @param $resolver
+     * @return void
+     */
     public function factory(string $id, $resolver): void
     {
         $this->factories[$id] = $resolver;
     }
 
+    /** set definitions for including file
+     * @param string $id
+     * @param $filename
+     * @return void
+     */
     public function file(string $id, $filename): void
     {
         $this->files[$id] = $filename;
@@ -49,6 +79,7 @@ class Container implements ContainerInterface
     {
         if (empty($this->aliases)) {
             $this->aliases = $set;
+            return;
         }
         $this->aliases = array_merge($this->aliases, $set);
     }
@@ -57,8 +88,18 @@ class Container implements ContainerInterface
     {
         if (empty($this->definitions)) {
             $this->definitions = $set;
+            return;
         }
         $this->definitions = array_merge($this->definitions, $set);
+    }
+
+    public function vars(array $set): void
+    {
+        if (empty($this->resolved)) {
+            $this->resolved = $set;
+            return;
+        }
+        $this->resolved = array_merge($this->resolved, $set);
     }
 
     public function factories(array $set): void
@@ -73,6 +114,7 @@ class Container implements ContainerInterface
     {
         if (empty($this->files)) {
             $this->files = $set;
+            return;
         }
         $this->files = array_merge($this->files, $set);
     }
@@ -411,15 +453,5 @@ class Container implements ContainerInterface
                 unset($this->$val[$id]);
             }
         }
-    }
-
-    /**
-     * @param string $id
-     * @param $value
-     * @return void
-     */
-    public function addResolved(string $id, $value)
-    {
-        $this->resolved[$id] = $value;
     }
 }

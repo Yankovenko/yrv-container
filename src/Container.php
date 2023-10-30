@@ -236,8 +236,6 @@ class Container implements ContainerInterface
                 return $this->resolveObjectMethod($source, $args);
             } elseif (is_callable($source) || (is_string($source) && function_exists($source))) {
                 return $this->resolveCallable($source, $args);
-            } elseif (is_scalar($source) || is_resource($source) || is_bool($source) || is_null($source)) {
-                return $source;
             }
 
         } catch (ContainerExceptionInterface $exception) {
